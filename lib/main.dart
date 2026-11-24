@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'screens/auth/auth_gate.dart';
+import 'core/theme.dart';
+import 'screens/splash_screen.dart';
 
 // Supabase project details.
 // Only the public (publishable/anon) key goes here. NEVER the secret key.
@@ -30,11 +31,14 @@ class SmartAttendanceApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Attendance',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-      ),
-      // AuthGate decides whether to show Login or the role's Home screen.
-      home: const AuthGate(),
+      // The app's look (lib/core/theme.dart). Follows the phone's
+      // light / dark mode setting.
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      // Splash first; it then opens AuthGate, which decides whether to
+      // show Login or the role's Home screen (logic unchanged).
+      home: const SplashScreen(),
     );
   }
 }

@@ -8,8 +8,10 @@ import '../../services/live_attendance_service.dart';
 
 // The "Present" list shown under the QR on the session screen.
 // Header: "Present X / Y enrolled" (Y = students enrolled in the course).
-// It loads once, then reloads by itself every time Realtime
-// reports a change in this session's attendance.
+// It shows everyone marked in this course TODAY (all of today's class
+// sessions, each student once), so ending and restarting the class keeps
+// the earlier marks on screen. It reloads by itself every time Realtime
+// reports a change in this course's attendance.
 class LiveAttendanceList extends StatefulWidget {
   final String sessionId;
   final String courseId;
@@ -36,7 +38,7 @@ class _LiveAttendanceListState extends State<LiveAttendanceList> {
   void initState() {
     super.initState();
     _load();
-    _channel = _service.listen(widget.sessionId, _load);
+    _channel = _service.listenCourse(widget.courseId, _load);
   }
 
   @override
@@ -48,7 +50,7 @@ class _LiveAttendanceListState extends State<LiveAttendanceList> {
 
   Future<void> _load() async {
     try {
-      final list = await _service.getPresent(widget.sessionId);
+      final list = await _service.getPresentToday(widget.courseId);
       final enrolled = await _service.countEnrolled(widget.courseId);
       if (!mounted) return;
       setState(() {

@@ -5,7 +5,9 @@ import '../services/student_service.dart';
 
 // Asks "Reset device?", calls reset_device on the server, and shows the
 // result in a SnackBar. Returns true if the device was reset.
-// Used on the alert detail screen and on the students list.
+// ADMIN ONLY: used on the admin Students and Student Devices screens
+// (the server refuses everyone else with NOT_ALLOWED).
+// Teachers are told to contact the admin.
 Future<bool> confirmAndResetDevice(
   BuildContext context, {
   required String studentId,

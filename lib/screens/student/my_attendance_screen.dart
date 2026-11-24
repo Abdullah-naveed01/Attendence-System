@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rpc_error.dart';
-import '../../models/course.dart';
 import '../../models/course_attendance.dart';
 import '../../services/attendance_service.dart';
-import 'history_screen.dart';
+import 'course_days_screen.dart';
 
 // My Attendance: one card per course with
-// percentage = attended classes / total classes x 100.
+// percentage = attended class days / counted class days x 100
+// (one entry per course per day; present and late count as attended).
 // A red warning appears when a course is below 75%.
+// Tap a course to see its date-wise list.
 class MyAttendanceScreen extends StatefulWidget {
   const MyAttendanceScreen({super.key});
 
@@ -51,16 +52,11 @@ class _MyAttendanceScreenState extends State<MyAttendanceScreen> {
     }
   }
 
+  // Date-wise list for this course only.
   void _openHistory(CourseAttendance item) {
-    final course = Course(
-      id: item.courseId,
-      name: item.courseName,
-      code: item.courseCode,
-      semester: '',
-    );
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => HistoryScreen(initialCourse: course)),
+      MaterialPageRoute(builder: (_) => CourseDaysScreen(course: item)),
     );
   }
 

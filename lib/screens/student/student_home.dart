@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/date_format.dart';
 import '../../core/pakistan_time.dart';
@@ -8,6 +9,7 @@ import '../../core/rpc_error.dart';
 import '../../models/course.dart';
 import '../../models/profile.dart';
 import '../../models/timetable_slot.dart';
+import '../../services/announcement_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/course_service.dart';
 import '../../services/timetable_service.dart';
@@ -15,6 +17,7 @@ import '../../widgets/today_class_card.dart';
 import 'history_screen.dart';
 import 'my_attendance_screen.dart';
 import 'scan_qr_screen.dart';
+import 'student_announcements_screen.dart';
 
 // Student Home: a big "Scan QR" button, today's classes from the timetable,
 // and the list of enrolled courses.
@@ -42,6 +45,11 @@ class _StudentHomeState extends State<StudentHome> {
   // Re-check the clock every minute so "Now / Finished" stays correct.
   Timer? _clockTimer;
 
+  // Announcements badge: how many were posted since the last visit.
+  final _announcementService = AnnouncementService();
+  RealtimeChannel? _announcementChannel;
+  int _newAnnouncements = 0;
+
   @override
   void initState() {
     super.initState();
@@ -49,12 +57,40 @@ class _StudentHomeState extends State<StudentHome> {
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
     });
+    _loadAnnouncementBadge();
+    // Live: update the badge when a teacher posts something.
+    _announcementChannel = _announcementService.listen(
+        'announcements-badge', _loadAnnouncementBadge);
   }
 
   @override
   void dispose() {
     _clockTimer?.cancel();
+    if (_announcementChannel != null) {
+      _announcementService.stopListening(_announcementChannel!);
+    }
     super.dispose();
+  }
+
+  Future<void> _loadAnnouncementBadge() async {
+    try {
+      final list = await _announcementService.getMyAnnouncements();
+      final lastSeen = await _announcementService.getLastSeen();
+      if (!mounted) return;
+      setState(() =>
+          _newAnnouncements = AnnouncementService.countNew(list, lastSeen));
+    } catch (e) {
+      // The badge is only a hint; the Announcements screen shows errors.
+      debugPrint('Could not count announcements: $e');
+    }
+  }
+
+  Future<void> _openAnnouncements() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const StudentAnnouncementsScreen()),
+    );
+    _loadAnnouncementBadge(); // everything was just seen
   }
 
   Future<void> _loadCourses() async {
@@ -150,6 +186,20 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+
+            // Announcements, with a badge for new ones
+            OutlinedButton.icon(
+              icon: Badge(
+                isLabelVisible: _newAnnouncements > 0,
+                label: Text('$_newAnnouncements'),
+                child: const Icon(Icons.campaign_outlined),
+              ),
+              label: Text(_newAnnouncements > 0
+                  ? 'Announcements ($_newAnnouncements new)'
+                  : 'Announcements'),
+              onPressed: _openAnnouncements,
             ),
             const SizedBox(height: 24),
 

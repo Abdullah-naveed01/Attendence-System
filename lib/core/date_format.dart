@@ -22,6 +22,14 @@ String formatTime(DateTime date) {
   return formatClock(d.hour * 60 + d.minute);
 }
 
+// A moment in time shown as a Pakistan date + time (UTC+5),
+// e.g. "Tue, 24 Nov 2026, 10:32 AM", whatever time zone the phone uses.
+String formatPakistanDateTime(DateTime date) {
+  final pk = date.toUtc().add(const Duration(hours: 5));
+  return '${_days[pk.weekday - 1]}, ${pk.day} ${_months[pk.month - 1]} '
+      '${pk.year}, ${formatClock(pk.hour * 60 + pk.minute)}';
+}
+
 // A moment in time shown as Pakistan time (UTC+5), e.g. "10:32 PM",
 // whatever time zone the phone is set to.
 String formatPakistanTime(DateTime date) {

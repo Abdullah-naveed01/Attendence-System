@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/profile.dart';
 import '../../services/auth_service.dart';
 import 'admin_students_screen.dart';
+import 'student_devices_screen.dart';
 import 'teachers_screen.dart';
 
 // Admin Home: the admin's tools. Only users with role 'admin' reach this
@@ -46,6 +47,13 @@ class AdminHome extends StatelessWidget {
             title: 'Students',
             subtitle: 'Add, enroll, reset phone, delete',
             screen: const AdminStudentsScreen(),
+          ),
+          _toolCard(
+            context,
+            icon: Icons.phonelink_setup,
+            title: 'Student Devices',
+            subtitle: 'Registered phones and Reset Device',
+            screen: const StudentDevicesScreen(),
           ),
         ],
       ),

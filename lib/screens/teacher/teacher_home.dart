@@ -13,8 +13,10 @@ import '../../services/course_service.dart';
 import '../../services/timetable_service.dart';
 import '../../widgets/alerts_button.dart';
 import '../../widgets/today_class_card.dart';
+import 'attendance_records_screen.dart';
 import 'session_screen.dart';
 import 'students_screen.dart';
+import 'teacher_announcements_screen.dart';
 
 // Teacher Home:
 // - "Today's Classes" from the timetable at the top
@@ -136,6 +138,32 @@ class _TeacherHomeState extends State<TeacherHome> {
         title: const Text('My Courses'),
         actions: [
           const AlertsButton(),
+          IconButton(
+            icon: const Icon(Icons.fact_check_outlined),
+            tooltip: 'Attendance Records',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    AttendanceRecordsScreen(teacherId: widget.profile.id),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.campaign_outlined),
+            tooltip: 'Announcements',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TeacherAnnouncementsScreen(
+                  teacherId: widget.profile.id,
+                  teacherName: widget.profile.fullName.isEmpty
+                      ? widget.profile.email
+                      : widget.profile.fullName,
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.people),
             tooltip: 'My Students',

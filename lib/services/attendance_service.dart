@@ -1,4 +1,5 @@
 import '../core/supabase_client.dart';
+import '../models/attendance_record_models.dart';
 import '../models/course_attendance.dart';
 import '../models/marked_class.dart';
 import '../models/session_record.dart';
@@ -41,6 +42,16 @@ class AttendanceService {
     } catch (_) {
       return null; // e.g. sql/last_attendance_info.sql not run yet
     }
+  }
+
+  // One course, one entry per class day (newest first), with the status
+  // Present / Late / Absent / Excused and whether the teacher marked it.
+  Future<List<StudentDay>> getMyCourseDays(String courseId) async {
+    final rows = await supabase.rpc('get_my_course_days',
+        params: {'p_course_id': courseId}) as List;
+    return rows
+        .map((r) => StudentDay.fromMap(Map<String, dynamic>.from(r)))
+        .toList();
   }
 
   // The logged-in student's attendance numbers for each enrolled course.

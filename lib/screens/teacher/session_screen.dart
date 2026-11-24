@@ -30,6 +30,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   String? _sessionId; // null = the session has not started yet
   String? _qrToken;
+  bool _resumed = false; // today's earlier class was reopened
   String? _startError; // set when start_session fails
   String? _refreshError; // set when a refresh fails (the old QR is still shown)
 
@@ -68,6 +69,7 @@ class _SessionScreenState extends State<SessionScreen> {
       setState(() {
         _sessionId = started.sessionId;
         _qrToken = started.qrToken;
+        _resumed = started.resumed;
         _secondsLeft = refreshSeconds;
       });
       _startTimer();
@@ -253,6 +255,31 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
           const SizedBox(height: 4),
           const Text('Students: scan this QR code'),
+          // Shown when today's earlier class was reopened
+          if (_resumed) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.history, size: 18, color: Colors.blue),
+                  SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      "Resumed today's class - earlier attendance kept",
+                      style: TextStyle(color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // The QR contains only the qr_token, nothing else.

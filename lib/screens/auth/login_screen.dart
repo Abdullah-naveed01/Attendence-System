@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rpc_error.dart';
+import '../../core/theme.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/app_logo.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/state_views.dart';
 
 // Email/password login form.
 // After a successful login we do NOT navigate ourselves —
@@ -21,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _loading = false;
   String? _error;
+  bool _showPassword = false; // eye button (display only)
 
   @override
   void dispose() {
@@ -54,76 +59,102 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: ConstrainedBox(
+              // Keeps the form a nice width on tablets and in Chrome
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.qr_code_scanner, size: 80),
-                  const SizedBox(height: 12),
-                  const Text(
+                  const Center(child: AppLogo(size: 88)),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
                     'Smart Attendance',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || !value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
-                      return null;
-                    },
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Sign in to continue',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
+                  const SizedBox(height: AppSpacing.lg),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                prefixIcon: Icon(Icons.email_outlined),
+                              ),
+                              validator: (value) {
+                                if (value == null || !value.contains('@')) {
+                                  return 'Enter a valid email';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: !_showPassword,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(_showPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined),
+                                  tooltip: _showPassword
+                                      ? 'Hide password'
+                                      : 'Show password',
+                                  onPressed: () => setState(
+                                      () => _showPassword = !_showPassword),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Enter your password';
+                                }
+                                return null;
+                              },
+                            ),
+                            // Error appears/disappears smoothly
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
+                              child: _error == null
+                                  ? const SizedBox(height: AppSpacing.lg)
+                                  : Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: AppSpacing.md),
+                                      child: ErrorBanner(message: _error!),
+                                    ),
+                            ),
+                            PrimaryButton(
+                              label: 'Login',
+                              icon: Icons.login_rounded,
+                              loading: _loading,
+                              onPressed: _login,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Login'),
                     ),
                   ),
                 ],

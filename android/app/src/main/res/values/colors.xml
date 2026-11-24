@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colors, same as lib/core/theme.dart -->
+    <color name="brand_primary">#3949AB</color>
+    <color name="ic_launcher_background">#3949AB</color>
+</resources>

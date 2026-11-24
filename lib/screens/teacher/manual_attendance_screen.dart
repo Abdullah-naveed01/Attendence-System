@@ -37,11 +37,12 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
     _load();
   }
 
-  // Enrolled students minus the ones already present in this session.
+  // Enrolled students minus the ones already present in this course
+  // TODAY (any of today's sessions), so nobody can be marked twice a day.
   Future<void> _load() async {
     try {
       final enrolled = await _service.getEnrolledStudents(widget.course.id);
-      final present = await _service.getPresent(widget.sessionId);
+      final present = await _service.getPresentToday(widget.course.id);
       final presentIds = present.map((p) => p.studentId).toSet();
       if (!mounted) return;
       setState(() {

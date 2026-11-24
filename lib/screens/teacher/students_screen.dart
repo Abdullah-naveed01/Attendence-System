@@ -4,11 +4,11 @@ import '../../core/rpc_error.dart';
 import '../../models/profile.dart';
 import '../../services/student_service.dart';
 import '../../widgets/message_view.dart';
-import '../../widgets/reset_device_dialog.dart';
 
-// Students with their phone status and a "Reset Device" button.
-// Teacher: students of their own courses. Admin: all students.
+// Teacher: the students of their own courses with their phone status.
 // (RLS on profiles decides who is visible.)
+// Only the admin can reset a phone, so there is no Reset button here;
+// a teacher can send the admin a request from a proxy alert.
 class StudentsScreen extends StatefulWidget {
   final String title;
   const StudentsScreen({super.key, required this.title});
@@ -58,13 +58,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
             s.fullName.toLowerCase().contains(text) ||
             s.email.toLowerCase().contains(text))
         .toList();
-  }
-
-  Future<void> _reset(Profile student) async {
-    final name = student.fullName.isEmpty ? student.email : student.fullName;
-    final done = await confirmAndResetDevice(context,
-        studentId: student.id, studentName: name);
-    if (done) _load();
   }
 
   @override
@@ -142,11 +135,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
         '${hasPhone ? 'Phone registered' : 'No phone registered yet'}',
       ),
       isThreeLine: true,
-      trailing: TextButton(
-        // Nothing to reset if no phone is registered.
-        onPressed: hasPhone ? () => _reset(student) : null,
-        child: const Text('Reset Device'),
-      ),
     );
   }
 }

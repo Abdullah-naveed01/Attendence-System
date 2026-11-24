@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/date_format.dart';
 import '../../models/audit_alert.dart';
 import '../../services/alert_service.dart';
-import '../../widgets/reset_device_dialog.dart';
 
-// Full details of one alert (teacher and admin).
-// Opening it marks the alert as read. For phone problems it offers
-// "Reset Device" for the students involved.
+// Full details of one alert (teacher).
+// Opening it marks the alert as read. Only the admin can reset a phone,
+// so for phone problems it shows "To reset a device, contact the admin."
 class AlertDetailScreen extends StatefulWidget {
   final AuditAlert alert;
   const AlertDetailScreen({super.key, required this.alert});
@@ -71,7 +70,7 @@ class _AlertDetailScreenState extends State<AlertDetailScreen> {
           _row('Date', formatDate(alert.createdAt)),
           _row('Time', formatTime(alert.createdAt)),
           if (alert.deviceId != null) _row('Phone ID', alert.deviceId!),
-          if (alert.isDeviceProblem) ..._resetButtons(alert),
+          if (alert.isDeviceProblem) _adminNote(),
         ],
       ),
     );
@@ -96,35 +95,22 @@ class _AlertDetailScreenState extends State<AlertDetailScreen> {
     );
   }
 
-  // One "Reset Device" button per student involved (account and owner).
-  List<Widget> _resetButtons(AuditAlert alert) {
-    final people = <String, String>{}; // student id -> name
-    if (alert.accountId != null) {
-      people[alert.accountId!] = alert.accountName ?? 'this student';
-    }
-    if (alert.ownerId != null) {
-      people[alert.ownerId!] = alert.ownerName ?? 'this student';
-    }
-
-    return [
-      const SizedBox(height: 16),
-      const Text(
-        'Only reset a phone if the student really changed or lost it.',
-        style: TextStyle(color: Colors.grey),
+  // Only the admin can reset a phone binding.
+  Widget _adminNote() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
       ),
-      for (final entry in people.entries)
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.phonelink_erase),
-            label: Text('Reset Device of ${entry.value}'),
-            onPressed: () => confirmAndResetDevice(
-              context,
-              studentId: entry.key,
-              studentName: entry.value,
-            ),
-          ),
-        ),
-    ];
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blue),
+          SizedBox(width: 10),
+          Expanded(child: Text('To reset a device, contact the admin.')),
+        ],
+      ),
+    );
   }
 }

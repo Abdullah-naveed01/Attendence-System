@@ -1,11 +1,13 @@
 import '../core/rpc_error.dart';
 import '../core/supabase_client.dart';
 
-// Result of start_session: the new session id and the first QR token.
+// Result of start_session: the session id, the first QR token, and
+// whether today's earlier class was reopened (resumed) instead of new.
 class StartedSession {
   final String sessionId;
   final String qrToken;
-  StartedSession(this.sessionId, this.qrToken);
+  final bool resumed;
+  StartedSession(this.sessionId, this.qrToken, {this.resumed = false});
 }
 
 // All server calls (RPCs) for a class session.
@@ -14,10 +16,13 @@ class SessionService {
   // Start a class. The server creates a session and the first QR token.
   Future<StartedSession> startSession(String courseId) async {
     final data = await _callRpc('start_session', {'p_course_id': courseId});
-    // Response: {ok, code: 'STARTED', session_id, token, expires_at}
+    // Response: {ok, code: 'STARTED', session_id, token, expires_at, resumed}
+    // resumed = true when today's earlier class of this course was reopened
+    // (sql/session_resume_same_day.sql). Missing = a new class.
     return StartedSession(
       _readString(data, 'session_id', 'start_session'),
       _readToken(data, 'start_session'),
+      resumed: data['resumed'] == true,
     );
   }
 

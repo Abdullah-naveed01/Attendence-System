@@ -34,6 +34,10 @@ String rpcMessage(String code) {
       return 'This student is already marked present.';
     case 'NOT_ADMIN':
       return 'Only an admin can manage teachers and students.';
+    case 'INVALID_STATUS':
+      return 'That attendance status is not valid.';
+    case 'NOT_FOUND':
+      return 'This item no longer exists.';
     case 'NOT_A_STUDENT':
       return 'This account is not a student.';
     case 'NO_CLASS_COURSES':
