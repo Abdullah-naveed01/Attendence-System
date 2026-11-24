@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/rpc_error.dart';
 import '../../models/course.dart';
@@ -6,10 +7,12 @@ import '../../models/profile.dart';
 import '../../services/live_attendance_service.dart';
 import '../../widgets/message_view.dart';
 
-// "Mark manually" (FR-23): enrolled students who are NOT marked yet.
+// "Mark manually" (FR-23): enrolled students who are NOT present today
+// (no row yet, or set to absent / excused).
 // The teacher taps a student, confirms, and the server function
-// mark_manual saves a 'manual' row without a device_id.
-// The live list on the session screen updates by itself (Realtime).
+// mark_manual saves 'present' with method 'manual': it creates the row,
+// or updates the student's existing absent row (never a second row).
+// This list and the live list update by themselves (Realtime).
 class ManualAttendanceScreen extends StatefulWidget {
   final String sessionId;
   final Course course;
@@ -30,11 +33,21 @@ class _ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
   bool _loading = true;
   String? _error;
   String? _savingId; // the student being saved right now
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // A student who scans now disappears from this list by itself.
+    _channel = _service.listenCourse(widget.course.id, _load,
+        screen: 'manual');
+  }
+
+  @override
+  void dispose() {
+    if (_channel != null) _service.stopListening(_channel!);
+    super.dispose();
   }
 
   // Enrolled students minus the ones already present in this course

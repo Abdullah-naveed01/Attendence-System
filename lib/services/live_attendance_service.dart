@@ -123,11 +123,14 @@ class LiveAttendanceService {
         .subscribe();
   }
 
-  // Calls onChange whenever an attendance row of this COURSE changes
-  // (a scan or a manual mark in any of today's sessions).
-  RealtimeChannel listenCourse(String courseId, void Function() onChange) {
+  // Calls onChange whenever an attendance row of this COURSE is inserted
+  // OR updated (a scan, a manual mark, or a teacher's status change).
+  // [screen] makes the channel name unique, because two open screens
+  // (e.g. the live list and Manual Attendance) must not share a channel.
+  RealtimeChannel listenCourse(String courseId, void Function() onChange,
+      {String screen = 'live'}) {
     return supabase
-        .channel('attendance-course-$courseId')
+        .channel('attendance-course-$courseId-$screen')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',

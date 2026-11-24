@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/supabase_client.dart';
 import '../models/audit_alert.dart';
 import '../screens/teacher/alert_detail_screen.dart';
 import '../screens/teacher/alerts_screen.dart';
@@ -24,6 +25,11 @@ class _AlertsButtonState extends State<AlertsButton> {
   final _service = AlertService();
   RealtimeChannel? _channel;
   int _unread = 0;
+
+  // The teacher who opened this Home screen. A banner is shown only while
+  // this same teacher is still logged in (never after a switch to the
+  // admin or another account).
+  final String? _teacherId = supabase.auth.currentUser?.id;
 
   @override
   void initState() {
@@ -49,8 +55,10 @@ class _AlertsButtonState extends State<AlertsButton> {
   }
 
   void _onNewAlert(AuditAlert alert) {
-    _loadCount();
     if (!mounted) return;
+    // Someone else is logged in now: show nothing.
+    if (supabase.auth.currentUser?.id != _teacherId) return;
+    _loadCount();
 
     final owner = alert.ownerName != null
         ? '\nReal phone owner: ${alert.ownerName}'

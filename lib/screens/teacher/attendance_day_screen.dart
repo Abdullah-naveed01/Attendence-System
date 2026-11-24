@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/csv.dart';
 import '../../core/date_format.dart';
@@ -8,6 +9,7 @@ import '../../core/theme.dart';
 import '../../models/attendance_record_models.dart';
 import '../../models/course.dart';
 import '../../services/attendance_records_service.dart';
+import '../../services/live_attendance_service.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/status_chip.dart';
 
@@ -38,10 +40,23 @@ class _AttendanceDayScreenState extends State<AttendanceDayScreen> {
   String _search = '';
   String? _savingId; // student being saved
 
+  // Realtime: reload when a student scans or a status changes
+  // (inserts AND updates), so this list always matches the live list.
+  final _liveService = LiveAttendanceService();
+  RealtimeChannel? _channel;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _channel = _liveService.listenCourse(widget.course.id, _load,
+        screen: 'records-day');
+  }
+
+  @override
+  void dispose() {
+    if (_channel != null) _liveService.stopListening(_channel!);
+    super.dispose();
   }
 
   Future<void> _load() async {

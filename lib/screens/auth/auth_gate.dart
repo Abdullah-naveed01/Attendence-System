@@ -24,6 +24,9 @@ class AuthGate extends StatelessWidget {
         final session = supabase.auth.currentSession;
 
         if (session == null) {
+          // Logged out: close any banner of the previous account
+          // (e.g. a teacher's proxy alert) so the next user never sees it.
+          _clearBanners(context);
           return const LoginScreen();
         }
 
@@ -32,6 +35,13 @@ class AuthGate extends StatelessWidget {
       },
     );
   }
+}
+
+// Closes every open SnackBar banner (after the current frame is drawn).
+void _clearBanners(BuildContext context) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) ScaffoldMessenger.maybeOf(context)?.clearSnackBars();
+  });
 }
 
 // Reads the role from the profiles table and shows that role's Home screen.
@@ -50,6 +60,8 @@ class _RoleRouterState extends State<RoleRouter> {
   void initState() {
     super.initState();
     _profileFuture = _authService.getMyProfile();
+    // A new user logged in: no banner from the previous account.
+    _clearBanners(context);
   }
 
   @override

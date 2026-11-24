@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/csv.dart';
 import '../../core/date_format.dart';
@@ -9,6 +10,7 @@ import '../../models/attendance_record_models.dart';
 import '../../models/course.dart';
 import '../../services/attendance_records_service.dart';
 import '../../services/course_service.dart';
+import '../../services/live_attendance_service.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/status_chip.dart';
@@ -42,10 +44,32 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen> {
   bool _exporting = false;
   String? _error;
 
+  // Realtime: reload the "Present X / Y" numbers when a student scans or
+  // a status changes in the selected course (inserts AND updates).
+  final _liveService = LiveAttendanceService();
+  RealtimeChannel? _channel;
+
   @override
   void initState() {
     super.initState();
     _loadCourses();
+  }
+
+  @override
+  void dispose() {
+    if (_channel != null) _liveService.stopListening(_channel!);
+    super.dispose();
+  }
+
+  // Listen to the selected course only (called when the course changes).
+  void _listenToCourse() {
+    if (_channel != null) _liveService.stopListening(_channel!);
+    final course = _course;
+    _channel = course == null
+        ? null
+        : _liveService.listenCourse(
+            course.id, () => _loadDays(silent: true),
+            screen: 'records');
   }
 
   Future<void> _loadCourses() async {
@@ -61,6 +85,7 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen> {
         _course = courses.isEmpty ? null : courses.first;
         _loadingCourses = false;
       });
+      _listenToCourse();
       if (_course != null) _loadDays();
     } catch (e) {
       if (!mounted) return;
@@ -71,13 +96,16 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen> {
     }
   }
 
-  Future<void> _loadDays() async {
+  // [silent] = reload without the spinner (Realtime updates).
+  Future<void> _loadDays({bool silent = false}) async {
     final course = _course;
     if (course == null) return;
-    setState(() {
-      _loadingDays = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loadingDays = true;
+        _error = null;
+      });
+    }
     try {
       final days = await _service.getClassDays(course.id);
       // Ignore the answer if the teacher switched course meanwhile
@@ -199,6 +227,7 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen> {
                 _course = _courses.firstWhere((c) => c.id == id);
                 _days = [];
               });
+              _listenToCourse();
               _loadDays();
             },
           ),
