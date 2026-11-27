@@ -27,8 +27,16 @@ Tables:
 - sessions(id, course_id, started_at, ended_at, is_active, qr_token,
   qr_expires_at, qr_prev_token, qr_prev_expires_at)
 - attendance(id, session_id, student_id, course_id, device_id,
-  method 'qr'|'manual', marked_at)
-  UNIQUE(session_id, student_id), UNIQUE(session_id, device_id)
+  method 'qr'|'manual', marked_at,
+  status 'present'|'late'|'absent'|'excused', edited_by, edited_at, edit_reason)
+  UNIQUE(session_id, student_id): ONE row per student per session.
+  Partial unique index attendance_one_present_per_device ON (session_id,
+  device_id) WHERE status IN ('present','late'): one phone can be PRESENT
+  for only one student per session. Absent/excused rows keep their
+  device_id (evidence) but do not block the phone. (Replaced the old
+  UNIQUE(session_id, device_id); sql/proxy_absent_device_fix.sql.)
+  Latest action wins: teacher sets absent -> row kept as 'absent'; a later
+  valid scan updates the SAME row to 'present'; never a second row.
 - audit_logs(id, event_type, severity 'low'|'high', session_id, course_id,
   account_id, device_owner_id, device_id, details, is_read, created_at)
 
@@ -65,6 +73,20 @@ admin always allowed. The original function was renamed to start_session_core
 (unchanged, not callable by the app). App mirrors the rule with pakistanNow()
 (UTC+5) in lib/core/pakistan_time.dart.
 
+One session per course per day (Asia/Karachi date), never into another day
+(sql/session_one_day_only.sql):
+- start_session first calls end_old_sessions(course): an ACTIVE session from
+  an earlier day is ended (ended_at = its slot end, or the last second of
+  that day if it had no slot). Then: same day -> today's session is resumed
+  (resumed = true, attendance kept); new day -> a NEW session (empty).
+- mark_attendance accepts only a QR whose session started TODAY (else
+  INVALID_QR).
+- pg_cron job "end-active-sessions-daily" runs at 23:59 Pakistan time
+  (cron '59 18 * * *', pg_cron uses UTC) and calls
+  end_old_sessions(null, true) to end every session still active.
+- end_old_sessions(p_course_id, p_include_today) is internal: anon /
+  authenticated cannot execute it.
+
 RLS: student sees own data; teacher sees own courses; admin sees all.
 Profiles: teacher/admin can read all profiles. Only admin can update profiles.
 Realtime is enabled on attendance and audit_logs.
@@ -72,9 +94,13 @@ Realtime is enabled on attendance and audit_logs.
 Proxy alerts rule: an alert (audit_logs row) goes ONLY to the teacher of
 the course where the attempt happened. The admin and other teachers never
 see it (no list, no badge, no realtime popup). Enforced by RLS
-(sql/alerts_teacher_only.sql: select/update only for courses.teacher_id =
-auth.uid(); the app may update only is_read) and again in
-lib/services/alert_service.dart (every query filters courses.teacher_id).
+(policies audit_logs_course_teacher_read / _update, applied by
+sql/proxy_absent_device_fix.sql Part A: select/update only for
+courses.teacher_id = auth.uid(); the app may update only is_read) and again
+in lib/services/alert_service.dart (every query filters courses.teacher_id).
+The banner (lib/widgets/alerts_button.dart) exists only on Teacher Home and
+shows only while the same teacher is logged in; auth_gate.dart clears open
+banners on logout / login.
 Alerts are written only by server functions. The admin resets phones from
 the admin Students screen, not from alerts.
 A trigger creates a profiles row (role 'student') on every signup.
@@ -85,8 +111,12 @@ RPC functions (call with supabase.rpc, all return JSON {ok, code, ...}):
   (the QR value is under the key "token", not "qr_token")
 - refresh_qr_token(p_session_id uuid) -> {ok, token, ...}   (teacher app calls every 30s)
 - mark_attendance(p_token text, p_device_id text) -> codes:
-  MARKED, INVALID_QR, NOT_ENROLLED, DEVICE_BLOCKED, ALREADY_MARKED,
-  NOT_ALLOWED, NO_DEVICE_ID
+  MARKED, INVALID_QR, NOT_ENROLLED, ALREADY_MARKED, NO_DEVICE_ID,
+  NOT_AUTHENTICATED, DEVICE_MULTI_STUDENT / DEVICE_MISMATCH /
+  DEVICE_ALREADY_BOUND (all shown as "phone not registered" in the app).
+  Row present/late -> ALREADY_MARKED; row absent/excused -> updated to
+  present (MARKED); no row -> inserted (MARKED). DEVICE_MULTI_STUDENT only
+  counts another student's present/late row with the same phone.
 - end_session(p_session_id uuid) -> {ok}
 - reset_device(p_student_id uuid) -> {ok}
 
